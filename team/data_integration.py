@@ -114,14 +114,36 @@ def integrate_data(df_category, df_struct, df_map):
             merged_df = pd.merge(merged_df, df_category_clean, on='category', how='left')
             print("✅ category 정보 병합 완료")
         
-        print(f"\n최종 통합 데이터 형태: {merged_df.shape}")
-        print("\n--- 통합된 데이터 미리보기 ---")
+        # 🔧 NaN 값 처리 및 데이터 정리
+        print("\n🔧 데이터 품질 개선 시작")
+        
+        # 1. 'struct' 컬럼의 NaN 값을 '일반 지역'으로 채우기
+        if 'struct' in merged_df.columns:
+            nan_count_before = merged_df['struct'].isna().sum()
+            merged_df['struct'].fillna('일반 지역', inplace=True)
+            print(f"✅ NaN 값 처리 완료: {nan_count_before}개 → '일반 지역'으로 변경")
+        
+        # 2. 모든 컬럼명의 앞뒤 공백 제거
+        merged_df.columns = merged_df.columns.str.strip()
+        print("✅ 컬럼명 공백 제거 완료")
+        
+        # 3. 결측치 처리 후 결과 확인
+        print("\n--- [결측치 처리 후 데이터 미리보기] ---")
         print(merged_df.head(10))
+        
+        print(f"\n최종 통합 데이터 형태: {merged_df.shape}")
+        
+        # 4. 수정 후 구조물 유형별 분포 확인
+        if 'struct' in merged_df.columns:
+            print("\n--- [수정 후 구조물 유형별 분포] ---")
+            struct_distribution = merged_df['struct'].value_counts()
+            for struct_type, count in struct_distribution.items():
+                print(f"- {struct_type}: {count}개")
         
         # 통합 데이터 저장
         output_path = os.path.join(os.path.dirname(__file__), 'integrated_area_data.csv')
         merged_df.to_csv(output_path, index=False, encoding='utf-8-sig')
-        print(f"\n💾 통합 데이터가 저장되었습니다: {output_path}")
+        print(f"\n💾 개선된 통합 데이터가 저장되었습니다: {output_path}")
         
         return merged_df
         
