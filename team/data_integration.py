@@ -166,27 +166,51 @@ def generate_summary(merged_df):
     print(f"총 컬럼 수: {len(merged_df.columns)}개")
     print(f"컬럼명: {list(merged_df.columns)}")
     
+    # 결측치 확인
+    print("\n--- 결측치 현황 ---")
+    missing_data = merged_df.isnull().sum()
+    if missing_data.sum() == 0:
+        print("✅ 결측치 없음 - 모든 데이터가 완전합니다!")
+    else:
+        print("결측치가 있는 컬럼:")
+        for col, count in missing_data.items():
+            if count > 0:
+                print(f"- {col}: {count}개")
+    
     # 건설 현장 분포
     if 'ConstructionSite' in merged_df.columns:
         construction_summary = merged_df['ConstructionSite'].value_counts()
         print(f"\n건설 현장 분포:")
         print(f"- 건설 현장 (1): {construction_summary.get(1, 0)}개")
         print(f"- 일반 지역 (0): {construction_summary.get(0, 0)}개")
+        
+        # 건설 현장 비율
+        construction_ratio = construction_summary.get(1, 0) / len(merged_df) * 100
+        print(f"- 건설 현장 비율: {construction_ratio:.1f}%")
     
     # 지역별 분포
     if 'area' in merged_df.columns:
-        area_summary = merged_df['area'].value_counts()
+        area_summary = merged_df['area'].value_counts().sort_index()
         print(f"\n지역 분포:")
         for area_id, count in area_summary.items():
-            print(f"- 지역 {area_id}: {count}개")
+            percentage = count / len(merged_df) * 100
+            print(f"- 지역 {area_id}: {count}개 ({percentage:.1f}%)")
     
-    # 카테고리별 분포
+    # 구조물 유형별 분포 (개선된 버전)
     if 'struct' in merged_df.columns:
         struct_summary = merged_df['struct'].value_counts()
         print(f"\n구조물 유형별 분포:")
         for struct_type, count in struct_summary.items():
-            if pd.notna(struct_type):
-                print(f"- {struct_type}: {count}개")
+            percentage = count / len(merged_df) * 100
+            print(f"- {struct_type}: {count}개 ({percentage:.1f}%)")
+    
+    # 카테고리별 분포
+    if 'category' in merged_df.columns:
+        category_summary = merged_df['category'].value_counts().sort_index()
+        print(f"\n카테고리별 분포:")
+        for cat_id, count in category_summary.items():
+            percentage = count / len(merged_df) * 100
+            print(f"- 카테고리 {cat_id}: {count}개 ({percentage:.1f}%)")
 
 def main():
     """
