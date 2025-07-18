@@ -8,8 +8,22 @@ try:
     base = float(base_input)
     exponent = int(exponent_input)
 
-    # ** 연산자를 사용하여 거듭제곱 계산
-    result = base ** exponent
+    # 0의 음수 거듭제곱 예외 처리 (0^(-n) = 1/0)
+    if base == 0 and exponent < 0:
+        raise ZeroDivisionError("Cannot calculate: division by zero (0 raised to negative power).")
+    
+    # 반복문을 사용하여 거듭제곱 계산
+    result = 1
+    
+    if exponent >= 0:
+        # 양수 지수인 경우: base를 exponent번 곱함
+        for i in range(exponent):
+            result *= base
+    else:
+        # 음수 지수인 경우: 1/(base^|exponent|)
+        for i in range(-exponent):
+            result *= base
+        result = 1 / result
 
     # 결과 출력 (요구사항에 맞게 정수로 표현될 수 있도록 처리)
     if result == int(result):
@@ -20,6 +34,6 @@ try:
 except ValueError:
     # 숫자로 변환할 수 없는 값이 입력된 경우 예외 처리
     print("Invalid number input.")
-except ZeroDivisionError:
-    # 0의 음수 거듭제곱인 경우 (0^(-n) = 1/0) 예외 처리
-    print("Cannot calculate: division by zero (0 raised to negative power).")
+except ZeroDivisionError as e:
+    # 0의 음수 거듭제곱인 경우 예외 처리
+    print(str(e))
