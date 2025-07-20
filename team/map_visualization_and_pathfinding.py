@@ -9,6 +9,8 @@ import heapq
 import os
 import platform
 
+
+
 # 한글 폰트 설정
 def setup_korean_font():
     """
@@ -47,7 +49,7 @@ class MapVisualizer:
         try:
             file_path = os.path.join(os.path.dirname(__file__), self.data_file)
             self.df = pd.read_csv(file_path)
-            print(f"데이터 로딩 완료: {len(self.df)}개 데이터 포인트")
+            print(f" 데이터 로딩 완료: {len(self.df)}개 데이터 포인트")
             print(f"컬럼: {list(self.df.columns)}")
         except Exception as e:
             print(f"데이터 로딩 실패: {e}")
@@ -79,8 +81,8 @@ class MapVisualizer:
         
         construction_grid, area_grid, category_grid = self.create_grid_matrices()
         
-        # 단일 윈도우로 통합 지도만 표시
-        plt.figure(figsize=(12, 10))
+        # 단일 윈도우로 통합 지도만 표시 - 창 크기 축소
+        plt.figure(figsize=(8, 7))  # 기존 (12, 10)에서 (8, 7)로 축소
         
         # 배경: 지역별 색상
         plt.imshow(area_grid, cmap='Pastel1', alpha=0.3)
@@ -350,7 +352,7 @@ class MapVisualizer:
                 path = self.visualize_path(start, goal)
                 
                 if path:
-                    print(f"\n경로 탐색 성공!")
+                    print(f"\n 경로 탐색 성공!")
                     print(f"경로: {' → '.join([f'({p[0]},{p[1]})' for p in path])}")
                     print(f"총 {len(path)-1}단계 이동")
                 else:
@@ -384,7 +386,7 @@ def main():
     visualizer.interactive_pathfinding()
     
     print("\n프로그램이 완료되었습니다!")
-    print("감사합니다!")
+    print("감사합니다! ")
 
 if __name__ == "__main__":
     main()
