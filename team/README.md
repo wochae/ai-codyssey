@@ -33,7 +33,10 @@ pip install pandas numpy matplotlib seaborn
 
 #### 단계별 실행
 ```bash
-# 1단계: 데이터 통합 (개선된 버전)
+# 1단계: 데이터 통합 (기본 버전)
+python caffe_map.py
+
+# 1단계: 데이터 통합 (개선된 버전 - 권장)
 python caffe_map_improved.py
 
 # 2단계: 지도 시각화
@@ -63,24 +66,42 @@ deactivate
 
 ---
 
-### 1단계: 데이터 수집 및 분석 (`caffe_map_improved.py`)
+### 1단계: 데이터 수집 및 분석
 
-****
+#### 기본 버전 (`caffe_map.py`)
 
-분리된 3개의 CSV 파일을 통합, 분석에 필요한 형태로 가공
+분리된 3개의 CSV 파일을 통합하여 area 1 지역의 데이터만을 분석하는 기본적인 데이터 통합 시스템
 
 * **구현된 로직:**
-    * **데이터 병합:** `area_struct.csv`, `area_map.csv`, `area_category.csv` 세 파일 병합을 위해 `pandas` 사용. 좌표(`x`, `y`)와 `category` ID 기준 모든 정보를 한 DataFrame으로 통합.
-    * **데이터 정제:** `category` ID를 실제 구조물 이름(`struct`)으로 변환, 이름이 없는 ID(0)는 '일반 지역'과 같이 의미 있는 값으로 처리.
-    * **전체 지역 데이터 통합:** 모든 area(1, 2, 3)의 데이터를 통합하여 완전한 지도 데이터 생성.
-    * **MyHome 위치 확인:** area 2의 (14,2) 위치에 있는 MyHome 데이터 포함.
-    * **(보너스) 요약 통계:** 구조물 종류별 집계 리포트 구현.
+    * **데이터 병합:** `area_struct.csv`, `area_map.csv`, `area_category.csv` 세 파일을 `pandas`를 사용하여 병합
+    * **데이터 정제:** `category` ID를 실제 구조물 이름(`struct`)으로 변환
+    * **area 1 필터링:** area 1 지역의 데이터만 추출하여 분석
+    * **요약 통계:** 구조물 종류별 집계 리포트 구현
+    * **CSV 저장:** 통합된 area 1 데이터를 `integrated_area_data.csv`로 저장
+
+#### 프로젝트 한계 발견 및 개선 필요성
+
+기본 버전(`caffe_map.py`) 실행 후 다음과 같은 **중요한 한계점**들을 발견:
+
+1. **불완전한 데이터 범위**: area 1만 포함하여 MyHome(area 2)과 반달곰 커피 간의 경로 탐색 불가능
+2. **제한적인 지도 시각화**: 전체 지역을 아우르는 완전한 지도 생성 불가
+3. **경로 탐색 제약**: 다른 area에 위치한 목적지로의 최단 경로 계산 불가능
+4. **데이터 일관성 문제**: 부분적인 데이터로 인한 분석 결과의 신뢰성 저하
+
+#### 개선된 버전 (`caffe_map_improved.py`) - **권장 사용**
+
+위의 한계점들을 해결하기 위해 완전히 재설계된 고도화된 데이터 통합 시스템
+
+* **주요 개선사항:**
+    * **전체 지역 데이터 통합:** 모든 area(1, 2, 3)의 데이터를 통합하여 완전한 지도 데이터 생성
+    * **MyHome 위치 확인:** area 2의 (14,2) 위치에 있는 MyHome 데이터 포함
+    * **완전한 경로 탐색 지원:** 모든 area 간의 최단 경로 계산 가능
+    * **향상된 데이터 품질:** 전체 데이터셋을 활용한 더 정확하고 신뢰성 있는 분석
+    * **확장 가능한 구조:** 추후 추가 area나 새로운 구조물 타입 쉽게 추가 가능
 
 ---
 
 ### 2단계: 지도 시각화 (`map_draw.py`)
-
-****
 
 1단계에서 정제된 데이터를 `matplotlib` 라이브러리를 사용하여 시각적으로 표현.
 
@@ -97,8 +118,6 @@ deactivate
 ---
 
 ### 3단계: 최단 경로 탐색 (`map_direct_save.py`)
-
-****
 
 프로젝트의 마지막 단계, 지도 데이터 위에서 '내 집'부터 '반달곰 커피'까지의 최단 경로를 찾는 알고리즘을 구현.
 
@@ -117,7 +136,7 @@ deactivate
 ## 주요 개선사항
 
 1. **완전한 데이터 통합**: 모든 area의 데이터를 포함하여 MyHome과 반달곰 커피 간의 경로 탐색 가능
-2. **A* 알고리즘**: 효율적인 최단 경로 탐색을 위한 고급 알고리즘 구현
+2. **A-STAR 알고리즘**: 효율적인 최단 경로 탐색을 위한 고급 알고리즘 구현
 3. **이중 좌표계 지원**: 그래픽스와 수학적 좌표계 모두 지원하여 다양한 용도로 활용 가능
 4. **한글 폰트 지원**: 운영체제별 한글 폰트 자동 설정으로 완벽한 한글 표시
 5. **상세한 경로 정보**: 경로 길이, 총 거리 등 상세 정보 제공
@@ -125,16 +144,18 @@ deactivate
 ---
 
 ## 파일 구조
+```bash
 team/
-├── caffe_map_improved.py      # 데이터 통합 (개선된 버전)
-├── map_draw.py                 # 기본 지도 시각화
-├── map_direct_save.py          # 최단 경로 탐색 및 시각화
-├── dataFile/
-│   ├── area_category.csv       # 카테고리 데이터
-│   ├── area_map.csv           # 지도 데이터
-│   └── area_struct.csv        # 구조물 데이터
-├── integrated_area_data.csv    # 통합된 데이터
-├── map.png                     # 기본 지도
-├── home_to_cafe.csv           # 최단 경로 데이터
-├── map_graphics_coordinate.png # 그래픽스 좌표계 경로 지도
-└── map_math_coordinate.png     # 수학적 좌표계 경로 지도
+    ├── caffe_map_improved.py      # 데이터 통합 (개선된 버전)
+    ├── map_draw.py                 # 기본 지도 시각화
+    ├── map_direct_save.py          # 최단 경로 탐색 및 시각화
+    ├── dataFile/
+    │   ├── area_category.csv       # 카테고리 데이터
+    │   ├── area_map.csv           # 지도 데이터
+    │   └── area_struct.csv        # 구조물 데이터
+    ├── integrated_area_data.csv    # 통합된 데이터
+    ├── map.png                     # 기본 지도
+    ├── home_to_cafe.csv           # 최단 경로 데이터
+    ├── map_graphics_coordinate.png # 그래픽스 좌표계 경로 지도
+    └── map_math_coordinate.png     # 수학적 좌표계 경로 지도
+```
