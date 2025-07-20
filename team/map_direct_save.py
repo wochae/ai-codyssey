@@ -121,21 +121,23 @@ def save_path_to_csv(path, filename):
             writer.writerow([i + 1, x, y])
 
 def draw_map_with_path(df, path, structures, max_x, max_y):
-    """지도와 경로를 그립니다."""
-    fig, ax = plt.subplots(figsize=(12, 10))
+    """지도와 경로를 그립니다 - 그래픽스용과 수학적 좌표계 버전 모두 생성"""
+    
+    # 1. 그래픽스용 좌표계 (좌측 상단이 원점) - 원본과 동일
+    fig1, ax1 = plt.subplots(figsize=(12, 10))
     
     # 배경 설정
-    ax.set_xlim(0.5, max_x + 0.5)
-    ax.set_ylim(0.5, max_y + 0.5)
-    ax.set_aspect('equal')
+    ax1.set_xlim(0.5, max_x + 0.5)
+    ax1.set_ylim(0.5, max_y + 0.5)
+    ax1.set_aspect('equal')
     
     # 그리드 라인 그리기
     for i in range(1, max_x + 2):
-        ax.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
+        ax1.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
     for i in range(1, max_y + 2):
-        ax.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
+        ax1.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
     
-    # 건설현장과 구조물 그리기
+    # 건설현장과 구조물 그리기 (원본 좌표 그대로 사용)
     for _, row in df.iterrows():
         x, y = int(row['x']), int(row['y'])
         
@@ -144,42 +146,42 @@ def draw_map_with_path(df, path, structures, max_x, max_y):
             rect = patches.Rectangle((x - 0.4, y - 0.4), 0.8, 0.8, 
                                    linewidth=1, edgecolor='gray', 
                                    facecolor='gray', alpha=0.7)
-            ax.add_patch(rect)
+            ax1.add_patch(rect)
         
         # 구조물 그리기
         struct_name = row['struct'].strip()
         if struct_name == 'Apartment' or struct_name == 'Building':
             circle = patches.Circle((x, y), 0.3, color='brown', alpha=0.8)
-            ax.add_patch(circle)
+            ax1.add_patch(circle)
         elif struct_name == 'MyHome':
             triangle = patches.RegularPolygon((x, y), 3, radius=0.3, 
                                             orientation=0, color='green', alpha=0.8)
-            ax.add_patch(triangle)
+            ax1.add_patch(triangle)
         elif struct_name == 'BandalgomCoffee':
             rect = patches.Rectangle((x - 0.3, y - 0.3), 0.6, 0.6, 
                                    linewidth=1, edgecolor='green', 
                                    facecolor='green', alpha=0.8)
-            ax.add_patch(rect)
+            ax1.add_patch(rect)
     
-    # 경로 그리기 (빨간 선)
+    # 경로 그리기 (빨간 선) - 원본 좌표 그대로 사용
     if path and len(path) > 1:
         path_x = [pos[0] for pos in path]
         path_y = [pos[1] for pos in path]
-        ax.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로')
+        ax1.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로')
         
         # 시작점과 끝점 표시
-        ax.plot(path[0][0], path[0][1], 'ro', markersize=8, label='시작점 (내 집)')
-        ax.plot(path[-1][0], path[-1][1], 'bs', markersize=8, label='도착점 (반달곰 커피)')
+        ax1.plot(path[0][0], path[0][1], 'ro', markersize=8, label='시작점 (내 집)')
+        ax1.plot(path[-1][0], path[-1][1], 'bs', markersize=8, label='도착점 (반달곰 커피)')
     
-    # 좌표축 설정 (좌측 상단이 (1,1))
-    ax.set_xticks(range(1, max_x + 1))
-    ax.set_yticks(range(1, max_y + 1))
-    ax.invert_yaxis()  # y축 뒤집기
+    # 좌표축 설정 (그래픽스용 - 좌측 상단이 (1,1))
+    ax1.set_xticks(range(1, max_x + 1))
+    ax1.set_yticks(range(1, max_y + 1))
+    ax1.invert_yaxis()  # y축 뒤집기 - 원본과 동일
     
     # 제목과 라벨
-    ax.set_title('최단 경로 탐색 결과 (15x15 격자)', fontsize=16, fontweight='bold')
-    ax.set_xlabel('X 좌표', fontsize=12)
-    ax.set_ylabel('Y 좌표', fontsize=12)
+    ax1.set_title('최단 경로 탐색 결과 - 그래픽스 좌표계 (좌측 상단 원점)', fontsize=16, fontweight='bold')
+    ax1.set_xlabel('X 좌표', fontsize=12)
+    ax1.set_ylabel('Y 좌표', fontsize=12)
     
     # 범례
     legend_elements = [
@@ -188,19 +190,97 @@ def draw_map_with_path(df, path, structures, max_x, max_y):
         patches.Patch(color='green', alpha=0.8, label='내 집/반달곰 커피'),
         plt.Line2D([0], [0], color='red', linewidth=3, alpha=0.8, label='최단 경로')
     ]
-    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
+    ax1.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
     
     # 정보 텍스트 박스
     if path:
         info_text = f'경로 길이: {len(path)}단계\n총 거리: {len(path)-1}칸'
-        ax.text(0.98, 0.02, info_text, transform=ax.transAxes, 
+        ax1.text(0.98, 0.02, info_text, transform=ax1.transAxes, 
                 bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
                 verticalalignment='bottom', horizontalalignment='right')
     
     plt.tight_layout()
-    plt.savefig('/Users/dachae/IdeaProjects/zody/team/map_final.png', 
+    plt.savefig('/Users/dachae/IdeaProjects/zody/team/map_graphics_coordinate.png', 
                 dpi=300, bbox_inches='tight')
-    plt.show()
+    plt.close()
+    
+    # 2. 수학적 좌표계 (좌측 하단이 원점) - 좌표 변환 없이 y축만 뒤집지 않음
+    fig2, ax2 = plt.subplots(figsize=(12, 10))
+    
+    # 배경 설정
+    ax2.set_xlim(0.5, max_x + 0.5)
+    ax2.set_ylim(0.5, max_y + 0.5)
+    ax2.set_aspect('equal')
+    
+    # 그리드 라인 그리기
+    for i in range(1, max_x + 2):
+        ax2.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
+    for i in range(1, max_y + 2):
+        ax2.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
+    
+    # 건설현장과 구조물 그리기 (원본 좌표 그대로 사용)
+    for _, row in df.iterrows():
+        x, y = int(row['x']), int(row['y'])
+        
+        # 건설현장 (회색 사각형)
+        if row['ConstructionSite'] == 1:
+            rect = patches.Rectangle((x - 0.4, y - 0.4), 0.8, 0.8, 
+                                   linewidth=1, edgecolor='gray', 
+                                   facecolor='gray', alpha=0.7)
+            ax2.add_patch(rect)
+        
+        # 구조물 그리기
+        struct_name = row['struct'].strip()
+        if struct_name == 'Apartment' or struct_name == 'Building':
+            circle = patches.Circle((x, y), 0.3, color='brown', alpha=0.8)
+            ax2.add_patch(circle)
+        elif struct_name == 'MyHome':
+            triangle = patches.RegularPolygon((x, y), 3, radius=0.3, 
+                                            orientation=0, color='green', alpha=0.8)
+            ax2.add_patch(triangle)
+        elif struct_name == 'BandalgomCoffee':
+            rect = patches.Rectangle((x - 0.3, y - 0.3), 0.6, 0.6, 
+                                   linewidth=1, edgecolor='green', 
+                                   facecolor='green', alpha=0.8)
+            ax2.add_patch(rect)
+    
+    # 경로 그리기 (빨간 선) - 원본 좌표 그대로 사용
+    if path and len(path) > 1:
+        path_x = [pos[0] for pos in path]
+        path_y = [pos[1] for pos in path]
+        ax2.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로')
+        
+        # 시작점과 끝점 표시
+        ax2.plot(path[0][0], path[0][1], 'ro', markersize=8, label='시작점 (내 집)')
+        ax2.plot(path[-1][0], path[-1][1], 'bs', markersize=8, label='도착점 (반달곰 커피)')
+    
+    # 좌표축 설정 (수학적 좌표계 - 좌측 하단이 (1,1))
+    ax2.set_xticks(range(1, max_x + 1))
+    ax2.set_yticks(range(1, max_y + 1))
+    # y축 뒤집기 없음 (수학적 좌표계) - 이것이 핵심!
+    
+    # 제목과 라벨
+    ax2.set_title('최단 경로 탐색 결과 - 수학적 좌표계 (좌측 하단 원점)', fontsize=16, fontweight='bold')
+    ax2.set_xlabel('X 좌표', fontsize=12)
+    ax2.set_ylabel('Y 좌표', fontsize=12)
+    
+    # 범례
+    ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
+    
+    # 정보 텍스트 박스
+    if path:
+        info_text = f'경로 길이: {len(path)}단계\n총 거리: {len(path)-1}칸'
+        ax2.text(0.98, 0.02, info_text, transform=ax2.transAxes, 
+                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
+                verticalalignment='bottom', horizontalalignment='right')
+    
+    plt.tight_layout()
+    plt.savefig('/Users/dachae/IdeaProjects/zody/team/map_math_coordinate.png', 
+                dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    print('그래픽스 좌표계 지도: map_graphics_coordinate.png')
+    print('수학적 좌표계 지도: map_math_coordinate.png')
 
 def find_coffee_locations(structures):
     """반달곰 커피 위치를 찾습니다."""
@@ -274,6 +354,9 @@ def main():
             # 지도 시각화
             print('\n지도를 시각화하는 중...')
             draw_map_with_path(df, best_path, structures, max_x, max_y)
+            print('두 가지 좌표계 지도가 생성되었습니다:')
+            print('- 그래픽스 좌표계: map_graphics_coordinate.png')
+            print('- 수학적 좌표계: map_math_coordinate.png')
             print('map_final.png 파일이 저장되었습니다.')
             
         else:
