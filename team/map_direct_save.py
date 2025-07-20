@@ -152,7 +152,7 @@ def draw_map_with_path(df, path, structures, max_x, max_y):
             circle = patches.Circle((x, y), 0.3, color='brown', alpha=0.8)
             ax.add_patch(circle)
         elif struct_name == 'MyHome':
-            triangle = patches.RegularPolygon((x, y), 3, 0.3, 
+            triangle = patches.RegularPolygon((x, y), 3, radius=0.3, 
                                             orientation=0, color='green', alpha=0.8)
             ax.add_patch(triangle)
         elif struct_name == 'BandalgomCoffee':
