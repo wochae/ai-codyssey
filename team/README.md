@@ -125,3 +125,16 @@ deactivate
 ---
 
 ## 파일 구조
+team/
+├── caffe_map_improved.py      # 데이터 통합 (개선된 버전)
+├── map_draw.py                 # 기본 지도 시각화
+├── map_direct_save.py          # 최단 경로 탐색 및 시각화
+├── dataFile/
+│   ├── area_category.csv       # 카테고리 데이터
+│   ├── area_map.csv           # 지도 데이터
+│   └── area_struct.csv        # 구조물 데이터
+├── integrated_area_data.csv    # 통합된 데이터
+├── map.png                     # 기본 지도
+├── home_to_cafe.csv           # 최단 경로 데이터
+├── map_graphics_coordinate.png # 그래픽스 좌표계 경로 지도
+└── map_math_coordinate.png     # 수학적 좌표계 경로 지도
