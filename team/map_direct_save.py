@@ -321,6 +321,7 @@ def main():
         grid, structures, max_x, max_y = create_grid_matrix(df)
         
         print(f'지도 크기: {max_x + 1} x {max_y + 1} (0-{max_x} x 0-{max_y})')
+        print(f'총 구조물 개수: {len([s for s in structures.values() if s != "일반 지역"])}개')
         
         # 시작점과 도착점 찾기
         home_location = find_home_location(structures)
@@ -367,18 +368,11 @@ def main():
             save_path_to_csv(best_path, 'home_to_cafe.csv')
             print('home_to_cafe.csv 파일이 저장되었습니다.')
             
-            # 보너스: 모든 구조물 방문 경로 계산
-            print('\n=== 보너스: 모든 구조물 방문 경로 계산 ===')
-            bonus_path, bonus_distance = find_optimal_structure_tour(grid, home_location, structures, max_x, max_y)
+            # 보너스 기능 비활성화
+            print('\n보너스 기능은 계산 시간이 오래 걸려 생략합니다.')
+            bonus_path = None
             
-            if bonus_path:
-                print(f'모든 구조물 방문 경로 길이: {len(bonus_path)}단계')
-                print(f'총 거리: {bonus_distance:.2f}칸')
-                print(f'방문 순서: {" -> ".join([f"({x},{y})" for x, y in bonus_path])}')
-            else:
-                print('모든 구조물을 방문하는 경로를 찾을 수 없습니다.')
-            
-            # 지도 시각화
+            # 지도 시각화 (보너스 경로 없이)
             print('\n지도를 시각화하는 중...')
             draw_map_with_path(df, best_path, structures, max_x, max_y, bonus_path)
             print('map_final.png 파일이 저장되었습니다.')
