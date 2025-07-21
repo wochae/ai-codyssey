@@ -25,7 +25,7 @@ def setup_korean_font():
 
 
 class MapDrawer:
-    def __init__(self, data_file="integrated_area_data.csv"):
+    def __init__(self, data_file="dataFile/merged_data.csv"):
         """지도 그리기 클래스"""
         setup_korean_font()  # 한글 폰트 설정
 

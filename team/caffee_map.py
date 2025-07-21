@@ -1,13 +1,13 @@
 import pandas as pd
 
 
-map_df = pd.read_csv("dataiFile/area_map.csv")
-struct_df = pd.read_csv("dataiFile/area_struct.csv")
-cat_df = pd.read_csv("dataiFile/area_category.csv")
+map_df = pd.read_csv("dataFile/area_map.csv")
+struct_df = pd.read_csv("dataFile/area_struct.csv")
+cat_df = pd.read_csv("dataFile/area_category.csv")
 
 
 cat_dict = cat_df.set_index("category")[" struct"].str.strip().to_dict()
-struct_df["struct_name"] = struct_df["category"].map(cat_dict).fillna("None")
+struct_df["struct"] = struct_df["category"].map(cat_dict).fillna("None")
 
 
 merged = pd.merge(map_df, struct_df, on=["x", "y"], how="left")
@@ -19,9 +19,9 @@ print(area1)
 
 
 print("\n--- 구조물 종류별 요약 통계 (Area 1) ---")
-summary = area1["struct_name"].value_counts()
+summary = area1["struct"].value_counts()
 print(summary)
 
 
-merged.to_csv("dataiFile/merged_data.csv", index=False)
+merged.to_csv("dataFile/merged_data.csv", index=False)
 print("\n병합된 데이터가 merged_data.csv로 저장되었습니다.")

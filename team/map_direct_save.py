@@ -5,6 +5,7 @@ from matplotlib import font_manager
 import heapq
 import math
 import csv
+import os
 from itertools import permutations
 
 
@@ -25,7 +26,9 @@ def setup_korean_font():
 
 def load_data():
     """CSV 데이터를 로드합니다 (좌표 변환 없이)."""
-    df = pd.read_csv("integrated_area_data.csv")
+    data_folder = os.path.join(os.path.dirname(__file__), "dataFile")
+    file_path = os.path.join(data_folder, "merged_data.csv")
+    df = pd.read_csv(file_path)
     # 좌표 변환 제거 - 원본 1-15 좌표계 유지
     return df
 
@@ -51,7 +54,7 @@ def create_grid_matrix(df):
 
         # 구조물 정보 저장
         if row["struct"] != "일반 지역":
-            structures[(x, y)] = row["struct"].strip()
+            structures[(x, y)] = row["struct"]
 
     return grid, structures, max_x, max_y
 
@@ -251,16 +254,16 @@ def draw_map_with_path(df, path, structures, max_x, max_y, bonus_path=None):
             ax.add_patch(rect)
 
         # 구조물 그리기
-        struct_name = row["struct"].strip()
-        if struct_name == "Apartment" or struct_name == "Building":
+        struct = str(row["struct"]).strip()
+        if struct == "Apartment" or struct == "Building":
             circle = patches.Circle((x, y), 0.3, color="brown", alpha=0.8)
             ax.add_patch(circle)
-        elif struct_name == "MyHome":
+        elif struct == "MyHome":
             triangle = patches.RegularPolygon(
                 (x, y), 3, radius=0.3, orientation=0, color="green", alpha=0.8
             )
             ax.add_patch(triangle)
-        elif struct_name == "BandalgomCoffee":
+        elif struct == "BandalgomCoffee":
             # 반달곰 커피 색상을 초록색으로 변경
             rect = patches.Rectangle(
                 (x - 0.3, y - 0.3),
@@ -372,18 +375,18 @@ def draw_map_with_path(df, path, structures, max_x, max_y, bonus_path=None):
 
 
 def find_coffee_locations(structures):
-    """반달곰 커피 위치를 찾습니다."""
+    """카페 위치를 찾습니다."""
     coffee_locations = []
-    for pos, struct_name in structures.items():
-        if "BandalgomCoffee" in struct_name:
+    for pos, struct in structures.items():
+        if isinstance(struct, str) and "BandalgomCoffee" in struct:
             coffee_locations.append(pos)
     return coffee_locations
 
 
 def find_home_location(structures):
     """내 집 위치를 찾습니다."""
-    for pos, struct_name in structures.items():
-        if "MyHome" in struct_name:
+    for pos, struct in structures.items():
+        if isinstance(struct, str) and "MyHome" in struct:
             return pos
     return None
 
