@@ -5,6 +5,7 @@ from matplotlib import font_manager
 import heapq
 import math
 import csv
+from itertools import permutations
 
 # 한글 폰트 설정
 def setup_korean_font():
@@ -21,8 +22,11 @@ def setup_korean_font():
         plt.rcParams['axes.unicode_minus'] = False
 
 def load_data():
-    """CSV 데이터를 로드합니다."""
-    df = pd.read_csv('/Users/dachae/IdeaProjects/zody/team/integrated_area_data.csv')
+    """CSV 데이터를 로드하고 좌표를 0-14로 변환합니다."""
+    df = pd.read_csv('integrated_area_data.csv')
+    # 좌표를 0-14로 변환 (1-15에서 1을 빼기)
+    df['x'] = df['x'] - 1
+    df['y'] = df['y'] - 1
     return df
 
 def create_grid_matrix(df):
@@ -63,7 +67,7 @@ def get_neighbors(pos, max_x, max_y):
     
     for dx, dy in directions:
         new_x, new_y = x + dx, y + dy
-        if 1 <= new_x <= max_x and 1 <= new_y <= max_y:
+        if 0 <= new_x <= max_x and 0 <= new_y <= max_y:
             neighbors.append((new_x, new_y))
     
     return neighbors
@@ -112,6 +116,67 @@ def a_star_pathfinding(grid, start, goal, max_x, max_y):
     
     return None  # 경로를 찾을 수 없음
 
+def calculate_path_distance(path):
+    """경로의 총 거리를 계산합니다."""
+    if not path or len(path) < 2:
+        return 0
+    
+    total_distance = 0
+    for i in range(len(path) - 1):
+        x1, y1 = path[i]
+        x2, y2 = path[i + 1]
+        
+        # 대각선 이동인지 확인
+        if abs(x2 - x1) == 1 and abs(y2 - y1) == 1:
+            total_distance += math.sqrt(2)
+        else:
+            total_distance += 1
+    
+    return total_distance
+
+def find_optimal_structure_tour(grid, home, structures, max_x, max_y):
+    """모든 구조물을 한 번씩 방문하는 최적화된 경로를 계산합니다 (TSP 변형)."""
+    # 구조물 위치만 추출 (내 집 제외)
+    structure_positions = [pos for pos, name in structures.items() if 'MyHome' not in name]
+    
+    if not structure_positions:
+        return None, 0
+    
+    best_total_path = None
+    best_total_distance = float('inf')
+    
+    # 모든 구조물 방문 순서의 순열을 시도
+    for perm in permutations(structure_positions):
+        total_path = [home]  # 집에서 시작
+        total_distance = 0
+        current_pos = home
+        valid_tour = True
+        
+        # 각 구조물을 순서대로 방문
+        for target_pos in perm:
+            path_segment = a_star_pathfinding(grid, current_pos, target_pos, max_x, max_y)
+            if path_segment is None:
+                valid_tour = False
+                break
+            
+            # 경로 연결 (시작점 중복 제거)
+            total_path.extend(path_segment[1:])
+            total_distance += calculate_path_distance(path_segment)
+            current_pos = target_pos
+        
+        # 마지막에 집으로 돌아가기
+        if valid_tour:
+            return_path = a_star_pathfinding(grid, current_pos, home, max_x, max_y)
+            if return_path is not None:
+                total_path.extend(return_path[1:])
+                total_distance += calculate_path_distance(return_path)
+                
+                if total_distance < best_total_distance:
+                    best_total_path = total_path
+                    best_total_distance = total_distance
+    
+    return best_total_path, best_total_distance
+
 def save_path_to_csv(path, filename):
     """경로를 CSV 파일로 저장합니다."""
     with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
@@ -120,24 +185,23 @@ def save_path_to_csv(path, filename):
         for i, (x, y) in enumerate(path):
             writer.writerow([i + 1, x, y])
 
-def draw_map_with_path(df, path, structures, max_x, max_y):
-    """지도와 경로를 그립니다 - 그래픽스용과 수학적 좌표계 버전 모두 생성"""
+def draw_map_with_path(df, path, structures, max_x, max_y, bonus_path=None):
+    """지도와 경로를 그립니다 - 그래픽스 좌표계 (0,0 시작)"""
     
-    # 1. 그래픽스용 좌표계 (좌측 상단이 원점) - 원본과 동일
-    fig1, ax1 = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(14, 12))
     
-    # 배경 설정
-    ax1.set_xlim(0.5, max_x + 0.5)
-    ax1.set_ylim(0.5, max_y + 0.5)
-    ax1.set_aspect('equal')
+    # 배경 설정 (0-14 좌표계)
+    ax.set_xlim(-0.5, max_x + 0.5)
+    ax.set_ylim(-0.5, max_y + 0.5)
+    ax.set_aspect('equal')
     
     # 그리드 라인 그리기
-    for i in range(1, max_x + 2):
-        ax1.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
-    for i in range(1, max_y + 2):
-        ax1.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
+    for i in range(max_x + 2):
+        ax.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
+    for i in range(max_y + 2):
+        ax.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
     
-    # 건설현장과 구조물 그리기 (원본 좌표 그대로 사용)
+    # 건설현장과 구조물 그리기
     for _, row in df.iterrows():
         x, y = int(row['x']), int(row['y'])
         
@@ -146,141 +210,86 @@ def draw_map_with_path(df, path, structures, max_x, max_y):
             rect = patches.Rectangle((x - 0.4, y - 0.4), 0.8, 0.8, 
                                    linewidth=1, edgecolor='gray', 
                                    facecolor='gray', alpha=0.7)
-            ax1.add_patch(rect)
+            ax.add_patch(rect)
         
         # 구조물 그리기
         struct_name = row['struct'].strip()
         if struct_name == 'Apartment' or struct_name == 'Building':
             circle = patches.Circle((x, y), 0.3, color='brown', alpha=0.8)
-            ax1.add_patch(circle)
+            ax.add_patch(circle)
         elif struct_name == 'MyHome':
             triangle = patches.RegularPolygon((x, y), 3, radius=0.3, 
                                             orientation=0, color='green', alpha=0.8)
-            ax1.add_patch(triangle)
+            ax.add_patch(triangle)
         elif struct_name == 'BandalgomCoffee':
             rect = patches.Rectangle((x - 0.3, y - 0.3), 0.6, 0.6, 
-                                   linewidth=1, edgecolor='green', 
-                                   facecolor='green', alpha=0.8)
-            ax1.add_patch(rect)
+                                   linewidth=1, edgecolor='orange', 
+                                   facecolor='orange', alpha=0.8)
+            ax.add_patch(rect)
     
-    # 경로 그리기 (빨간 선) - 원본 좌표 그대로 사용
+    # 기본 최단 경로 그리기 (빨간 선)
     if path and len(path) > 1:
         path_x = [pos[0] for pos in path]
         path_y = [pos[1] for pos in path]
-        ax1.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로')
+        ax.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로 (집→커피숍)')
         
         # 시작점과 끝점 표시
-        ax1.plot(path[0][0], path[0][1], 'ro', markersize=8, label='시작점 (내 집)')
-        ax1.plot(path[-1][0], path[-1][1], 'bs', markersize=8, label='도착점 (반달곰 커피)')
+        ax.plot(path[0][0], path[0][1], 'ro', markersize=10, label='시작점 (내 집)')
+        ax.plot(path[-1][0], path[-1][1], 'bs', markersize=10, label='도착점 (반달곰 커피)')
     
-    # 좌표축 설정 (그래픽스용 - 좌측 상단이 (1,1))
-    ax1.set_xticks(range(1, max_x + 1))
-    ax1.set_yticks(range(1, max_y + 1))
-    ax1.invert_yaxis()  # y축 뒤집기 - 원본과 동일
+    # 보너스: 모든 구조물 방문 경로 그리기 (파란 선)
+    if bonus_path and len(bonus_path) > 1:
+        bonus_x = [pos[0] for pos in bonus_path]
+        bonus_y = [pos[1] for pos in bonus_path]
+        ax.plot(bonus_x, bonus_y, 'b--', linewidth=2, alpha=0.6, label='모든 구조물 방문 경로')
+    
+    # 좌표축 설정 (그래픽스 좌표계 - 좌상단이 (0,0))
+    ax.set_xticks(range(0, max_x + 1))
+    ax.set_yticks(range(0, max_y + 1))
+    ax.invert_yaxis()  # y축 뒤집기 (그래픽스 좌표계)
     
     # 제목과 라벨
-    ax1.set_title('최단 경로 탐색 결과 - 그래픽스 좌표계 (좌측 상단 원점)', fontsize=16, fontweight='bold')
-    ax1.set_xlabel('X 좌표', fontsize=12)
-    ax1.set_ylabel('Y 좌표', fontsize=12)
+    ax.set_title('최단 경로 탐색 결과 - 그래픽스 좌표계 (좌상단 (0,0))', fontsize=16, fontweight='bold')
+    ax.set_xlabel('X 좌표', fontsize=12)
+    ax.set_ylabel('Y 좌표', fontsize=12)
     
     # 범례
     legend_elements = [
         patches.Patch(color='gray', alpha=0.7, label='건설 현장 (이동 불가)'),
         patches.Patch(color='brown', alpha=0.8, label='아파트/빌딩'),
-        patches.Patch(color='green', alpha=0.8, label='내 집/반달곰 커피'),
+        patches.Patch(color='green', alpha=0.8, label='내 집'),
+        patches.Patch(color='orange', alpha=0.8, label='반달곰 커피'),
         plt.Line2D([0], [0], color='red', linewidth=3, alpha=0.8, label='최단 경로')
     ]
-    ax1.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
+    
+    if bonus_path:
+        legend_elements.append(
+            plt.Line2D([0], [0], color='blue', linewidth=2, linestyle='--', alpha=0.6, label='모든 구조물 방문')
+        )
+    
+    ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
     
     # 정보 텍스트 박스
+    info_lines = []
     if path:
-        info_text = f'경로 길이: {len(path)}단계\n총 거리: {len(path)-1}칸'
-        ax1.text(0.98, 0.02, info_text, transform=ax1.transAxes, 
+        distance = calculate_path_distance(path)
+        info_lines.append(f'최단 경로: {len(path)}단계')
+        info_lines.append(f'총 거리: {distance:.2f}칸')
+    
+    if bonus_path:
+        bonus_distance = calculate_path_distance(bonus_path)
+        info_lines.append(f'구조물 투어: {len(bonus_path)}단계')
+        info_lines.append(f'투어 거리: {bonus_distance:.2f}칸')
+    
+    if info_lines:
+        info_text = '\n'.join(info_lines)
+        ax.text(0.98, 0.02, info_text, transform=ax.transAxes, 
                 bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
                 verticalalignment='bottom', horizontalalignment='right')
     
     plt.tight_layout()
-    plt.savefig('/Users/dachae/IdeaProjects/zody/team/map_graphics_coordinate.png', 
-                dpi=300, bbox_inches='tight')
+    plt.savefig('map_final.png', dpi=300, bbox_inches='tight')
     plt.close()
-    
-    # 2. 수학적 좌표계 (좌측 하단이 원점) - 좌표 변환 없이 y축만 뒤집지 않음
-    fig2, ax2 = plt.subplots(figsize=(12, 10))
-    
-    # 배경 설정
-    ax2.set_xlim(0.5, max_x + 0.5)
-    ax2.set_ylim(0.5, max_y + 0.5)
-    ax2.set_aspect('equal')
-    
-    # 그리드 라인 그리기
-    for i in range(1, max_x + 2):
-        ax2.axvline(x=i - 0.5, color='lightgray', linewidth=0.5)
-    for i in range(1, max_y + 2):
-        ax2.axhline(y=i - 0.5, color='lightgray', linewidth=0.5)
-    
-    # 건설현장과 구조물 그리기 (원본 좌표 그대로 사용)
-    for _, row in df.iterrows():
-        x, y = int(row['x']), int(row['y'])
-        
-        # 건설현장 (회색 사각형)
-        if row['ConstructionSite'] == 1:
-            rect = patches.Rectangle((x - 0.4, y - 0.4), 0.8, 0.8, 
-                                   linewidth=1, edgecolor='gray', 
-                                   facecolor='gray', alpha=0.7)
-            ax2.add_patch(rect)
-        
-        # 구조물 그리기
-        struct_name = row['struct'].strip()
-        if struct_name == 'Apartment' or struct_name == 'Building':
-            circle = patches.Circle((x, y), 0.3, color='brown', alpha=0.8)
-            ax2.add_patch(circle)
-        elif struct_name == 'MyHome':
-            triangle = patches.RegularPolygon((x, y), 3, radius=0.3, 
-                                            orientation=0, color='green', alpha=0.8)
-            ax2.add_patch(triangle)
-        elif struct_name == 'BandalgomCoffee':
-            rect = patches.Rectangle((x - 0.3, y - 0.3), 0.6, 0.6, 
-                                   linewidth=1, edgecolor='green', 
-                                   facecolor='green', alpha=0.8)
-            ax2.add_patch(rect)
-    
-    # 경로 그리기 (빨간 선) - 원본 좌표 그대로 사용
-    if path and len(path) > 1:
-        path_x = [pos[0] for pos in path]
-        path_y = [pos[1] for pos in path]
-        ax2.plot(path_x, path_y, 'r-', linewidth=3, alpha=0.8, label='최단 경로')
-        
-        # 시작점과 끝점 표시
-        ax2.plot(path[0][0], path[0][1], 'ro', markersize=8, label='시작점 (내 집)')
-        ax2.plot(path[-1][0], path[-1][1], 'bs', markersize=8, label='도착점 (반달곰 커피)')
-    
-    # 좌표축 설정 (수학적 좌표계 - 좌측 하단이 (1,1))
-    ax2.set_xticks(range(1, max_x + 1))
-    ax2.set_yticks(range(1, max_y + 1))
-    # y축 뒤집기 없음 (수학적 좌표계) - 이것이 핵심!
-    
-    # 제목과 라벨
-    ax2.set_title('최단 경로 탐색 결과 - 수학적 좌표계 (좌측 하단 원점)', fontsize=16, fontweight='bold')
-    ax2.set_xlabel('X 좌표', fontsize=12)
-    ax2.set_ylabel('Y 좌표', fontsize=12)
-    
-    # 범례
-    ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0.02, 0.98))
-    
-    # 정보 텍스트 박스
-    if path:
-        info_text = f'경로 길이: {len(path)}단계\n총 거리: {len(path)-1}칸'
-        ax2.text(0.98, 0.02, info_text, transform=ax2.transAxes, 
-                bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.8),
-                verticalalignment='bottom', horizontalalignment='right')
-    
-    plt.tight_layout()
-    plt.savefig('/Users/dachae/IdeaProjects/zody/team/map_math_coordinate.png', 
-                dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print('그래픽스 좌표계 지도: map_graphics_coordinate.png')
-    print('수학적 좌표계 지도: map_math_coordinate.png')
 
 def find_coffee_locations(structures):
     """반달곰 커피 위치를 찾습니다."""
@@ -311,6 +320,8 @@ def main():
         print('그리드 매트릭스를 생성하는 중...')
         grid, structures, max_x, max_y = create_grid_matrix(df)
         
+        print(f'지도 크기: {max_x + 1} x {max_y + 1} (0-{max_x} x 0-{max_y})')
+        
         # 시작점과 도착점 찾기
         home_location = find_home_location(structures)
         coffee_locations = find_coffee_locations(structures)
@@ -335,28 +346,41 @@ def main():
             print(f'\n{coffee_pos} 위치의 반달곰 커피로의 경로를 탐색 중...')
             path = a_star_pathfinding(grid, home_location, coffee_pos, max_x, max_y)
             
-            if path and len(path) < shortest_distance:
-                best_path = path
-                best_goal = coffee_pos
-                shortest_distance = len(path)
+            if path:
+                distance = calculate_path_distance(path)
+                print(f'경로 발견: {len(path)}단계, 거리: {distance:.2f}칸')
+                
+                if distance < shortest_distance:
+                    best_path = path
+                    best_goal = coffee_pos
+                    shortest_distance = distance
         
         if best_path:
-            print(f'\n최단 경로를 찾았습니다!')
+            print(f'\n=== 최단 경로 결과 ===')
             print(f'목적지: {best_goal}')
             print(f'경로 길이: {len(best_path)}단계')
+            print(f'총 거리: {shortest_distance:.2f}칸')
             print(f'경로: {" -> ".join([f"({x},{y})" for x, y in best_path])}')
             
             # CSV 파일로 저장
             print('\n경로를 CSV 파일로 저장하는 중...')
-            save_path_to_csv(best_path, '/Users/dachae/IdeaProjects/zody/team/home_to_cafe.csv')
+            save_path_to_csv(best_path, 'home_to_cafe.csv')
             print('home_to_cafe.csv 파일이 저장되었습니다.')
+            
+            # 보너스: 모든 구조물 방문 경로 계산
+            print('\n=== 보너스: 모든 구조물 방문 경로 계산 ===')
+            bonus_path, bonus_distance = find_optimal_structure_tour(grid, home_location, structures, max_x, max_y)
+            
+            if bonus_path:
+                print(f'모든 구조물 방문 경로 길이: {len(bonus_path)}단계')
+                print(f'총 거리: {bonus_distance:.2f}칸')
+                print(f'방문 순서: {" -> ".join([f"({x},{y})" for x, y in bonus_path])}')
+            else:
+                print('모든 구조물을 방문하는 경로를 찾을 수 없습니다.')
             
             # 지도 시각화
             print('\n지도를 시각화하는 중...')
-            draw_map_with_path(df, best_path, structures, max_x, max_y)
-            print('두 가지 좌표계 지도가 생성되었습니다:')
-            print('- 그래픽스 좌표계: map_graphics_coordinate.png')
-            print('- 수학적 좌표계: map_math_coordinate.png')
+            draw_map_with_path(df, best_path, structures, max_x, max_y, bonus_path)
             print('map_final.png 파일이 저장되었습니다.')
             
         else:
@@ -366,6 +390,8 @@ def main():
         print('\n사용자에 의해 프로그램이 중단되었습니다.')
     except Exception as e:
         print(f'오류가 발생했습니다: {e}')
+        import traceback
+        traceback.print_exc()
 
 if __name__ == '__main__':
     main()

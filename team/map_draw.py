@@ -60,7 +60,7 @@ class MapDrawer:
         category_grid = np.zeros((self.grid_size, self.grid_size))
         
         for _, row in self.df.iterrows():
-            x, y = int(row['x']) - 1, int(row['y']) - 1  # 0-based 인덱스로 변환
+            x, y = int(row['x']), int(row['y'])  # 0-based 인덱스 그대로 사용
             if 0 <= x < self.grid_size and 0 <= y < self.grid_size:
                 construction_grid[y, x] = row['ConstructionSite']
                 area_grid[y, x] = row['area']
@@ -85,7 +85,7 @@ class MapDrawer:
         
         # 1단계: 먼저 일반 구조물들을 그리기 (건설 현장이 아닌 것들)
         for _, row in self.df.iterrows():
-            x, y = int(row['x']) - 1, int(row['y']) - 1  # 0-based 인덱스로 변환
+            x, y = int(row['x']), int(row['y'])  # 0-based 인덱스 그대로 사용
             cat_id = row['category']
             is_construction = row['ConstructionSite'] == 1
             
@@ -124,14 +124,14 @@ class MapDrawer:
             plt.axhline(i - 0.5, color='black', linewidth=0.5, zorder=1)
             plt.axvline(i - 0.5, color='black', linewidth=0.5, zorder=1)
         
-        # 좌표 라벨 추가 (좌측 상단이 (1,1)이 되도록)
-        plt.xticks(range(self.grid_size), range(1, self.grid_size + 1))
-        plt.yticks(range(self.grid_size), range(1, self.grid_size + 1))
+        # 좌표 라벨 추가 (그래픽스 좌표계: 좌측 상단이 (0,0))
+        plt.xticks(range(self.grid_size), range(0, self.grid_size))
+        plt.yticks(range(self.grid_size), range(0, self.grid_size))
         
-        # Y축을 뒤집어서 좌측 상단이 (1,1)이 되도록 설정
-        plt.gca().invert_yaxis()
+        # Y축 반전 제거 - 그래픽스 좌표계에서는 Y축이 아래쪽으로 증가
+        # plt.gca().invert_yaxis()  # 이 줄을 제거
         
-        plt.title('지역 지도 (15x15 격자)', fontsize=16, fontweight='bold')
+        plt.title('지역 지도 (15x15 격자) - 그래픽스 좌표계', fontsize=16, fontweight='bold')
         plt.xlabel('X 좌표')
         plt.ylabel('Y 좌표')
         
@@ -151,14 +151,15 @@ class MapDrawer:
         coffee_count = len(self.df[(self.df['category'] == 4) & (self.df['ConstructionSite'] == 0)])
         construction_count = len(construction_x)
         
-        info_text = f"""지도 정보:
+        info_text = f"""지도 정보 (그래픽스 좌표계):
 • 총 {self.grid_size}x{self.grid_size} = {self.grid_size**2}개 구역
 • 건설 현장: {construction_count}개 (회색 사각형)
 • 아파트: {apartment_count}개 (갈색 원형)
 • 빌딩: {building_count}개 (갈색 원형)
 • 내 집: {home_count}개 (녹색 삼각형)
 • 반달곰커피: {coffee_count}개 (녹색 사각형)
-• 좌표 범위: (1,1) ~ ({self.grid_size},{self.grid_size})
+• 좌표 범위: (0,0) ~ ({self.grid_size-1},{self.grid_size-1})
+• 좌측 상단이 (0,0), Y축은 아래쪽으로 증가
 • 건설 현장과 구조물 겹침 시 건설 현장 우선"""
         
         plt.figtext(0.02, 0.02, info_text, fontsize=10, 
@@ -184,7 +185,7 @@ class MapDrawer:
         construction_count, apartment_count, building_count, home_count, coffee_count = self.draw_map()
         
         print("\n" + "="*50)
-        print("지도 생성 완료 요약")
+        print("지도 생성 완료 요약 (그래픽스 좌표계)")
         print("="*50)
         print(f"건설 현장: {construction_count}개 위치")
         print(f"아파트: {apartment_count}개 위치")
@@ -192,7 +193,8 @@ class MapDrawer:
         print(f"내 집: {home_count}개 위치")
         print(f"반달곰커피: {coffee_count}개 위치")
         print(f"\n특징:")
-        print(f"   - 좌측 상단이 (1,1), 우측 하단이 ({self.grid_size},{self.grid_size})")
+        print(f"   - 그래픽스 좌표계: 좌측 상단이 (0,0), 우측 하단이 ({self.grid_size-1},{self.grid_size-1})")
+        print(f"   - Y축은 아래쪽으로 증가 (그래픽스 표준)")
         print(f"   - 건설 현장은 회색 사각형으로 표시 (겹침 허용)")
         print(f"   - 건설 현장과 구조물 겹침 시 건설 현장 우선")
         print(f"   - 결과 이미지: map.png로 저장")
