@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import font_manager
 import heapq
-import math
 import csv
 import os
 from itertools import permutations
@@ -65,20 +64,16 @@ def heuristic(a, b):
 
 
 def get_neighbors(pos, max_x, max_y):
-    """주변 8방향의 이웃 좌표를 반환합니다."""
+    """주변 4방향의 이웃 좌표를 반환합니다."""
     x, y = pos
     neighbors = []
 
-    # 8방향 이동 (상하좌우 + 대각선)
+    # 4방향 이동 (상하좌우)
     directions = [
-        (-1, -1),
         (-1, 0),
-        (-1, 1),
+        (1, 0),
         (0, -1),
         (0, 1),
-        (1, -1),
-        (1, 0),
-        (1, 1),
     ]
 
     for dx, dy in directions:
@@ -118,14 +113,8 @@ def a_star_pathfinding(grid, start, goal, max_x, max_y):
             if grid[ny][nx] == 1:
                 continue
 
-            # 대각선 이동의 경우 거리 계산
-            if (
-                abs(neighbor[0] - current[0]) == 1
-                and abs(neighbor[1] - current[1]) == 1
-            ):
-                tentative_g_score = g_score[current] + math.sqrt(2)
-            else:
-                tentative_g_score = g_score[current] + 1
+            # 대각선 이동이 없으므로 항상 1씩 증가
+            tentative_g_score = g_score[current] + 1
 
             if (
                 neighbor not in g_score
@@ -148,18 +137,8 @@ def calculate_path_distance(path):
     if not path or len(path) < 2:
         return 0
 
-    total_distance = 0
-    for i in range(len(path) - 1):
-        x1, y1 = path[i]
-        x2, y2 = path[i + 1]
-
-        # 대각선 이동인지 확인
-        if abs(x2 - x1) == 1 and abs(y2 - y1) == 1:
-            total_distance += math.sqrt(2)
-        else:
-            total_distance += 1
-
-    return total_distance
+    # 경로의 길이는 단계의 수와 동일 (대각선 이동 없음)
+    return len(path) - 1
 
 
 def find_optimal_structure_tour(grid, home, structures, max_x, max_y):
@@ -252,6 +231,7 @@ def draw_map_with_path(df, path, structures, max_x, max_y, bonus_path=None):
                 alpha=0.7,
             )
             ax.add_patch(rect)
+            continue  # 건설현장이면 다른 구조물은 그리지 않음
 
         # 구조물 그리기
         struct = str(row["struct"]).strip()
